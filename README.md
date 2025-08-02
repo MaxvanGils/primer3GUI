@@ -63,6 +63,6 @@ Max van Gils, primer3GUI: A Streamlit GUI wrapper for Primer3, GitHub repository
 https://github.com/mgils4/primer3GUI, [2025]
 
 Please also cite the original primer3 papers and/or repository:  
-> Untergasser A, Cutcutache I, Koressaar T, et al. Primer3—new capabilities and interfaces. Nucleic acids research 2012. DOI: 10.1093/nar/gks596.
-> Koressaar T and Remm M. Enhancements and modifications of primer design program Primer3. Bioinformatics 2007. DOI: 10.1093/bioinformatics/btm091.
-> https://github.com/primer3-org/primer3
+- Untergasser A, Cutcutache I, Koressaar T, et al. Primer3—new capabilities and interfaces. Nucleic acids research 2012. DOI: 10.1093/nar/gks596.
+- Koressaar T and Remm M. Enhancements and modifications of primer design program Primer3. Bioinformatics 2007. DOI: 10.1093/bioinformatics/btm091.
+- https://github.com/primer3-org/primer3
