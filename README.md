@@ -28,14 +28,12 @@ See the Primer3 project [here](https://github.com/primer3-org/primer3) for full 
 ## Installation
 
 1. Clone this repository:
-### TODO: ADD LINK
 ```bash
-git clone 
+git clone https://github.com/mgils4/primer3GUI.git
 cd primer3GUI
 ```
 
 2. Create and activate the Conda environment:
-### TODO: add env name and activation name
 ```bash
 conda env create -f primer3GUI_env.yml
 conda activate primer3GUI
@@ -50,7 +48,7 @@ conda install primer3=2.6.1
 ```bash
 streamlit run 
 ```
-TODO: fill in name!
+TODO: fill in script name!
 
 
 ## Disclaimer
