@@ -1,5 +1,5 @@
-# P3G
-P3G is a lightweight nterface built using [Streamlit](https://streamlit.io/) that wraps around [Primer3](https://github.com/primer3-org/primer3)(V0.4.0), installable via Conda. This tool offers a 
+# primer3GUI
+primer3GUI, or P3G for short, is a lightweight nterface built using [Streamlit](https://streamlit.io/) that wraps around [Primer3](https://github.com/primer3-org/primer3)(V0.4.0), installable via Conda. This tool offers a 
 
 interface built using [Streamlit](https://streamlit.io/) that wraps around [Primer3](https://github.com/primer3-org/primer3), the widely used open-source tool for designing PCR primers.  
 This tool offers an alternative to the publicly available Primer3 web application
