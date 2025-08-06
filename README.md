@@ -3,7 +3,7 @@ primer3GUI, or P3G for short, is a lightweight interface built using [Streamlit]
 
 P3G was originally designed for cases where the web application would be unavailable or for design without an internet connection. P3G produces identical primer sequences for given inputs and parameters.
 
-In rare cases, you may notice **minor differences in the total number of designs returned** compared to other Primer3 interfaces (e.g., the official web-based tools), despite using the same input parameters as specified in the official Primer3 repository. 
+You may notice **minor differences in the total number of designs returned** compared to other Primer3 interfaces (e.g., the official web-based tools), despite using the same input parameters. This is due to P3G using a newer release of the primer3core (V 2.6.1), as the web version is using V 1.1.4. 
 
 
 
