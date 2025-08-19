@@ -1,4 +1,4 @@
-name: primer3GUI
+name: P3G
 channels:
   - bioconda
   - conda-forge

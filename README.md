@@ -18,6 +18,8 @@ This application offers similar functions and parameters for primer and probe de
 - Settings files with the specified input sequences and parameters that can be downloaded and reloaded so that specific designs can be saved and reviewed at a later date
 - Outputs that can be saved in PDF or HTML format
 
+Currently, a couple of different versions of the application exist. For the differences between them, see [here](P3G/README.md). 
+
 
 ## Licenses
 This project is licensed under the MIT license. See the [LICENSE](LICENSE) for full terms.
@@ -25,36 +27,41 @@ This project is licensed under the MIT license. See the [LICENSE](LICENSE) for f
 Primer3 is included in this project and is licensed separately under the GNU General Public License v2.0.
 See the Primer3 project [here](https://github.com/primer3-org/primer3) for full source code and license.
 
-## Installation
+## Installation and Usage
 
-1. Clone this repository:
+1. Dowload this repository either as a ZIP and unpack, or via commandline:
 ```bash
 git clone https://github.com/mgils4/primer3GUI.git
-cd primer3GUI
 ```
-
-2. Create and activate the Conda environment:
+2. Navigate to the relevant directory:
 ```bash
-conda env create -f primer3GUI_env.yml
-conda activate primer3GUI
+cd primer3GUI/P3G
 ```
 
-3. Install Primer3 (required separately):
+3. Create and activate the Conda environment:
+```bash
+conda env create -f P3G_conda_env.yml
+conda activate P3G
+```
+
+4. Install Primer3 (required separately):
 ```bash
 conda install primer3=2.6.1
 ```
 
-4. Run the python script via Streamlit
+5. Run the python script via Streamlit
 ```bash
-streamlit run 
+streamlit run P3G_V1.0.py
 ```
-TODO: fill in script name!
 
+6. Open the application in your preferred browser using one of the URLs that appear in the console. FOr security reasons, the Local URL is safer. 
 
 ## Disclaimer
 This is an independent tool wrapper of the Primer3 core engine.
 It is not developed, maintained, or endorsed by the official Primer3 development team.
 All trademarks and copyrights belong to their respective holders. 
+
+This application is currently only tested locally, not on a server based setting, and thus its functionality in a server-based or production environment cannot be guaranteed.
 
 ## Citation 
 If you use P3G in your research or projects, please cite this repository as follows:
@@ -66,3 +73,8 @@ Please also cite the original primer3 papers and/or repository:
 - Untergasser A, Cutcutache I, Koressaar T, et al. Primer3—new capabilities and interfaces. Nucleic acids research 2012. DOI: 10.1093/nar/gks596.
 - Koressaar T and Remm M. Enhancements and modifications of primer design program Primer3. Bioinformatics 2007. DOI: 10.1093/bioinformatics/btm091.
 - https://github.com/primer3-org/primer3
+
+## Roadmap / TO DO
+
+- incorporate a small popup for running the application using st.toast (waiting on an update from Streamlit)
+- look into ways to better allow the user to switch between tabs, maybe by changing from tabs to pages
