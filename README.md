@@ -55,7 +55,9 @@ conda install primer3=2.6.1
 streamlit run P3G_V1.0.py
 ```
 
-6. Open the application in your preferred browser using one of the URLs that appear in the console. FOr security reasons, the Local URL is safer. 
+6. Open the application in your preferred browser using one of the URLs that appear in the console. For security reasons, the Local URL is safer.   
+
+If no GUI appears or an error pops up, a reload of the page can fix this problem. 
 
 <br>
 
