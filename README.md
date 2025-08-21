@@ -17,6 +17,7 @@ This application offers similar functions and parameters for primer and probe de
 - A web-based GUI for filling in parameters 
 - Settings files with the specified input sequences and parameters that can be downloaded and reloaded so that specific designs can be saved and reviewed at a later date
 - Outputs that can be saved in PDF or HTML format
+- Creating results with pre-designed primers without having to alter all parameters to suit your designs, effectively overriding parameters but including warnings so the user can see what parameters do not fit with the provided design
 
 Currently, a couple of different versions of the application exist. For the differences between them, see [here](P3G/README.md). 
 
@@ -77,4 +78,9 @@ Please also cite the original primer3 papers and/or repository:
 ## Roadmap / TO DO
 
 - incorporate a small popup for running the application using st.toast (waiting on an update from Streamlit)
-- look into ways to better allow the user to switch between tabs, maybe by changing from tabs to pages
+- look into ways to better allow the user to switch between tabs
+- potentially add an overview to visualize all the created oligo's on the target sequence
+- add the legend to the exported result files
+- add the standard libraries and allow user to add custom library sequences for detecting unexpected cross reactivity
+- add penalty weight settings for determining the "optimal/best" primers. This would allow the user to change them from the default settings to custom settings
+- rerender the warning and output tabs only when run is clicked again, so the result does not disappear after making changes

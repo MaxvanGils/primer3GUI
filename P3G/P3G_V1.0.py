@@ -16,8 +16,9 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Preformatted, PageBreak
 from io import BytesIO
 
+st.set_page_config(page_title="P3G V 1.0", layout="wide")
 
-
+# setup an additional sidebar button to run Primer3
 sidebar_clicked = st.sidebar.button("▶️ Run Primer3", key="sidebar_run")
 
 
@@ -59,7 +60,7 @@ def exclude_regions(sequence:str):
 
 # function to set the primer task based on the selected checks and/or sequences 
 def determine_primer_task(pick_left, pick_right, pick_internal, left, right, internal):
-    # If probe is picked or provided, and at least one primer is picked or provided
+    # if probe is picked or provided, and at least one primer is picked or provided
     probe_selected = pick_internal or bool(internal.strip())
     left_selected = pick_left or bool(left.strip())
     right_selected = pick_right or bool(right.strip())
@@ -90,12 +91,13 @@ def parse_primer3_input_file(file_text):
             parsed_input_data[key.strip()] = value.strip()
     return parsed_input_data
 
-###
 
 
+# convert dataframe to HTML table for display
 def dataframe_to_html_table(df):
     return df.to_html(index=False, border=1, justify="left", classes="dataframe", escape=False)
 
+# function to format the sequence blocks for output 
 def format_sequence_block(rows):
     block = ""
     for idx_row, (seq_row, marker_row) in enumerate(rows):
@@ -104,6 +106,7 @@ def format_sequence_block(rows):
         block += f"{line_prefix}  {seq_row}\n       {marker_row}\n\n"
     return f"<pre>{block}</pre>"
 
+# setup the downloadable HTML report
 def generate_full_html_report(results, explanation_summary_df=None, pair_explain_text="", seq_id=""):
     html = f"""
     <html><head>
@@ -125,18 +128,18 @@ def generate_full_html_report(results, explanation_summary_df=None, pair_explain
         html += format_sequence_block(res['sequence_block'])
         html += "<br><hr>"
 
-    #  Add explanation summary at the bottom
+    #  add explanation summary from primer3 at the bottom
     if explanation_summary_df is not None:
         html += "<h2>Primer Explanation Summary</h2>"
         html += dataframe_to_html_table(explanation_summary_df.T)  # flip rows/cols for layout
-
+        # add pair explanation text if generated
         if pair_explain_text:
             html += f"<p><strong>Pair summary:</strong> {pair_explain_text}</p>"
 
     html += "</body></html>"
     return html
 
-
+# generate PDF report, using ReportLab
 def generate_pdf_reportlab(results, explanation_summary_df=None, pair_explain_text=""):
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, 
@@ -153,7 +156,7 @@ def generate_pdf_reportlab(results, explanation_summary_df=None, pair_explain_te
     for idx, res in enumerate(results):
         elements.append(Paragraph(f"Result {idx + 1}", styles["Heading2"]))
 
-        # Primer table
+        ## primer table
         primer_table_data = [res['primer_table'].columns.tolist()] + res['primer_table'].values.tolist()
         primer_table = Table(primer_table_data, repeatRows=1,  colWidths=[110, 45, 30, 45, 45, 35, 35, 180])
         primer_table.setStyle(TableStyle([
@@ -165,7 +168,7 @@ def generate_pdf_reportlab(results, explanation_summary_df=None, pair_explain_te
         elements.append(primer_table)
         elements.append(Spacer(1, 6))
 
-        # Product table
+        ## product table
         product_table_data = [res['product_table'].columns.tolist()] + res['product_table'].values.tolist()
         product_table = Table(product_table_data, repeatRows=1, colWidths=[131,131,131,131])
         product_table.setStyle(TableStyle([
@@ -177,20 +180,18 @@ def generate_pdf_reportlab(results, explanation_summary_df=None, pair_explain_te
         elements.append(product_table)
         elements.append(Spacer(1, 6))
 
-        # Sequence block
+        ## sequence block
         elements.append(Paragraph("Binding Sites", styles["Heading3"]))
         seq_lines = []
         for seq, marker in res['sequence_block']:
             seq_lines.append(f"{seq}\n{marker}\n")
         elements.append(Preformatted("".join(seq_lines), mono))
         elements.append(Spacer(1, 12))
-        # Add a page break after each result except the last one
+        ## add a page break after each result except the last one
         if idx < len(results) - 1:
             elements.append(PageBreak())
-        
-        
 
-    # Explanation Summary Table
+    ## explanation Summary Table
     elements.append(PageBreak())
     if explanation_summary_df is not None:
         elements.append(Paragraph("Primer Explanation Summary", styles["Heading2"]))
@@ -207,7 +208,7 @@ def generate_pdf_reportlab(results, explanation_summary_df=None, pair_explain_te
         ]))
         elements.append(explain_table)
 
-    # Pair explanation text
+    ## pair explanation text
     if pair_explain_text:
         elements.append(Spacer(1, 8))
         elements.append(Paragraph(f"<b>Pair summary:</b> {pair_explain_text}", styles["Normal"]))
@@ -216,6 +217,7 @@ def generate_pdf_reportlab(results, explanation_summary_df=None, pair_explain_te
     buffer.seek(0)
     return buffer
 
+# function to convert Windows path to Linux path for WSL compatibility
 def convert_windows_to_linux_path(windows_path):
     if ":" not in windows_path:
         raise ValueError("Path must include a drive letter, e.g., C:")
@@ -226,6 +228,7 @@ def convert_windows_to_linux_path(windows_path):
     linux_path = f"/mnt/{drive}/{path_part}"
     return linux_path
 
+# check if provided path exists
 def resolve_and_check_path(path_input):
     """
     Resolves input path which can be:
@@ -233,17 +236,17 @@ def resolve_and_check_path(path_input):
     - Relative path -> resolved relative to current working directory
     Returns tuple: (resolved_path_str, exists_bool)
     """
-    path_input = path_input.strip().strip('"').strip("'")  # strip quotes and spaces
+    path_input = path_input.strip().strip('"').strip("'")  
 
     if not path_input:
         return "", False
     
-    # Check if it's a Windows absolute path (has drive letter, e.g. C:\)
+    # check if it's a Windows absolute path 
     if len(path_input) > 1 and path_input[1] == ":":
         try:
             resolved_path = convert_windows_to_linux_path(path_input)
         except Exception as e:
-            # If conversion fails, treat as relative fallback
+            # if conversion fails, treat as relative fallback
             resolved_path = str(Path(path_input).resolve())
     else:
         # treat as relative path, resolve with current working directory
@@ -252,8 +255,9 @@ def resolve_and_check_path(path_input):
     exists = os.path.exists(resolved_path)
     return resolved_path, exists
 
-#
-### === Handle uploaded file before widgets are created ===
+########################## Reuploading existing files #####################################
+
+# handle uploaded file before widgets are created 
 uploaded_file = st.sidebar.file_uploader(
     label="Upload Primer3 file created using this tool",
     accept_multiple_files=False,
@@ -266,8 +270,9 @@ if uploaded_file and "imported" not in st.session_state:
     parsed = parse_primer3_input_file(content)
     st.session_state["primer3_parsed"] = parsed
 
-    # Safe to set values before widgets are created
+    # set values before widgets are created
     st.session_state.update({
+        # general options
         "sequence": parsed.get("SEQUENCE_TEMPLATE", ""),
         "seq_id": parsed.get("SEQUENCE_ID", ""),
         "left": parsed.get("SEQUENCE_PRIMER", ""),
@@ -312,7 +317,6 @@ if uploaded_file and "imported" not in st.session_state:
         "salt_correction_value": parsed.get("PRIMER_SALT_CORRECTIONS", "" ),
         "primer_dntp_conc": float(parsed.get("PRIMER_DNTP_CONC", "")),
         "annealing_oligo_conc": float(parsed.get("PRIMER_DNA_CONC", "" )),
-        ### up to here works
         "liberal_base": parsed.get("PRIMER_LIBERAL_BASE", ""),
         "ambiguity_codes_consensus": parsed.get( "PRIMER_LIB_AMBIGUITY_CODES_CONSENSUS", ""),
         "lowercase_masking": parsed.get("PRIMER_LOWERCASE_MASKING", "" ),
@@ -335,17 +339,18 @@ if uploaded_file and "imported" not in st.session_state:
         "probe_max_poly_x": int(parsed.get("PRIMER_INTERNAL_MAX_POLY_X", "")),
         "probe_DNA_conc": float(parsed.get("PRIMER_INTERNAL_DNA_CONC", "")),
         "probe_dntp_conc": float(parsed.get("PRIMER_INTERNAL_DNTP_CONC", "")),
-    
+        # set value showing that the file settings has been imported
         "imported": True
     })
-    # Set pick to False if sequence is present
+    # following import, set pick to False if sequence is present
     if st.session_state["left"]:
         st.session_state["pick_left"] = False
     if st.session_state["right"]:
         st.session_state["pick_right"] = False
     if st.session_state["internal"]:
         st.session_state["pick_internal"] = False
-    
+
+# set standard/default values for parameters    
 defaults = {
     "sequence": "",
     "seq_id": "example sequence",
@@ -364,8 +369,7 @@ defaults = {
     "max_3_prime_stability": 9.0,
     "save_input_file": False,
     "input_save_path": os.path.join(os.getcwd(), "primer3_input.txt"),
-
-    # Primer settings
+    # primer settings
     "primer_min_size": 18,
     "primer_opt_size": 20,
     "primer_max_size": 27,
@@ -393,8 +397,7 @@ defaults = {
     "product_min_tm": -1000000,
     "product_opt_tm": 0.0,
     "product_max_tm": 1000000,
-
-    # Probe (internal oligo) settings
+    # probe (internal oligo) settings
     "probe_min_size": 18,
     "probe_opt_size": 20,
     "probe_max_size": 27,
@@ -402,7 +405,7 @@ defaults = {
     "probe_opt_tm": 60.0,
     "probe_max_tm": 63.0,
     "probe_min_GC": 20.0,
-    "probe_opt_GC": 50.0,  # Leave empty for auto handling
+    "probe_opt_GC": 50.0, 
     "probe_max_GC": 80.0,
     "probe_max_self_comp": 12.0,
     "probe_max_Ns": 0,
@@ -413,7 +416,6 @@ defaults = {
     "probe_max_poly_x": 5,
     "probe_DNA_conc": 50.0,
     "probe_dntp_conc": 0.0,
-
     # Primer3 options
     "liberal_base_checkbox": True,
     "ambiguity_codes_checkbox": True,
@@ -422,51 +424,39 @@ defaults = {
     "ambiguity_codes_consensus": 1,
     "lowercase_masking": 1,
 }
+# initialize session state with default values
 for key, default in defaults.items():
     st.session_state.setdefault(key, default)
 
-
-
-
-
+### TODO: maybe order this better, so that the settings are grouped together
 # === Full Primer3 v0.4.0 settings template ===
 PRIMER3_TEMPLATE = """SEQUENCE_ID={seq_id}
 SEQUENCE_TEMPLATE={sequence}
 SEQUENCE_PRIMER={seq_primer}
 SEQUENCE_PRIMER_REVCOMP={seq_primer_rev}
 SEQUENCE_INTERNAL_OLIGO={seq_internal}
+SEQUENCE_TARGET={target}
+EXCLUDED_REGION={excluded_region}
+PRIMER_TASK={primer_task}
 PRIMER_THERMODYNAMIC_OLIGO_ALIGNMENT=0
 PRIMER_THERMODYNAMIC_TEMPLATE_ALIGNMENT=0
-PRIMER_TASK={primer_task}
 PRIMER_PICK_LEFT_PRIMER=1
 PRIMER_PICK_INTERNAL_OLIGO=1
 PRIMER_PICK_RIGHT_PRIMER=1
 PRIMER_NUM_RETURN={num_return}
-PRIMER_MIN_5_PRIME_OVERLAP_OF_JUNCTION=5
 PRIMER_PRODUCT_SIZE_RANGE={product_size_range}
-PRIMER_PRODUCT_OPT_SIZE=0
-PRIMER_PAIR_WT_PRODUCT_SIZE_LT=0.0
-PRIMER_PAIR_WT_PRODUCT_SIZE_GT=0.0
 PRIMER_MIN_SIZE={primer_min_size}
 PRIMER_INTERNAL_MIN_SIZE={probe_min_size}
 PRIMER_OPT_SIZE={primer_opt_size}
 PRIMER_INTERNAL_OPT_SIZE={probe_opt_size}
 PRIMER_MAX_SIZE={primer_max_size}
 PRIMER_INTERNAL_MAX_SIZE={probe_max_size}
-PRIMER_WT_SIZE_LT=1.0
-PRIMER_INTERNAL_WT_SIZE_LT=1.0
-PRIMER_WT_SIZE_GT=1.0
-PRIMER_INTERNAL_WT_SIZE_GT=1.0
 PRIMER_MIN_GC={primer_min_GC}
 PRIMER_INTERNAL_MIN_GC={probe_min_GC}
 PRIMER_OPT_GC_PERCENT={primer_opt_GC}
 PRIMER_INTERNAL_OPT_GC_PERCENT={probe_opt_GC}
 PRIMER_MAX_GC={primer_max_GC}
 PRIMER_INTERNAL_MAX_GC={probe_max_GC}
-PRIMER_WT_GC_PERCENT_LT=0.0
-PRIMER_INTERNAL_WT_GC_PERCENT_LT=0.0
-PRIMER_WT_GC_PERCENT_GT=0.0
-PRIMER_INTERNAL_WT_GC_PERCENT_GT=0.0
 PRIMER_GC_CLAMP={CG_clamp}
 PRIMER_MAX_END_GC=5
 PRIMER_MIN_TM={primer_min_tm}
@@ -477,24 +467,12 @@ PRIMER_MAX_TM={primer_max_tm}
 PRIMER_INTERNAL_MAX_TM={probe_max_tm}
 PRIMER_PAIR_MAX_DIFF_TM={max_tm_diff}
 PRIMER_TM_SANTALUCIA={thermo_param_value}
-PRIMER_WT_TM_LT=1.0
-PRIMER_INTERNAL_WT_TM_LT=1.0
-PRIMER_WT_TM_GT=1.0
-PRIMER_INTERNAL_WT_TM_GT=1.0
-PRIMER_PAIR_WT_DIFF_TM=0.0
 PRIMER_PRODUCT_MIN_TM={product_min_tm}
 PRIMER_PRODUCT_OPT_TM={product_opt_tm}
 PRIMER_PRODUCT_MAX_TM= {product_max_tm}
 PRIMER_INTERNAL_OLIGO_MIN_QUALITY={probe_min_seq_qual}
 PRIMER_INTERNAL_OLIGO_SALT_CONC={probe_salt_conc_monocat}
 PRIMER_INTERNAL_OLIGO_DIVALENT_CONC={probe_salt_conc_divcat}
-PRIMER_PAIR_WT_PRODUCT_TM_LT=0.0
-PRIMER_PAIR_WT_PRODUCT_TM_GT=0.0
-PRIMER_TM_FORMULA=0
-PRIMER_SALT_MONOVALENT=50.0
-PRIMER_INTERNAL_SALT_MONOVALENT=50.0
-PRIMER_SALT_DIVALENT=0.0
-PRIMER_INTERNAL_SALT_DIVALENT=0.0
 PRIMER_DNTP_CONC={primer_dntp_conc}
 PRIMER_INTERNAL_DNTP_CONC={probe_dntp_conc}
 PRIMER_SALT_CONC={primer_salt_conc_monocat}
@@ -504,26 +482,14 @@ PRIMER_DNA_CONC={annealing_oligo_conc}
 PRIMER_INTERNAL_DNA_CONC={probe_DNA_conc}
 PRIMER_MAX_SELF_ANY={primer_max_self_comp}
 PRIMER_INTERNAL_MAX_SELF_ANY={probe_max_self_comp}
-PRIMER_PAIR_MAX_COMPL_ANY=8.00
-PRIMER_WT_SELF_ANY=0.0
-PRIMER_INTERNAL_WT_SELF_ANY=0.0
-PRIMER_PAIR_WT_COMPL_ANY=0.0
 PRIMER_MAX_SELF_END={primer_max_3prime_self_comp}
 PRIMER_INTERNAL_MAX_SELF_END={probe_max_3prime_self_comp}
-PRIMER_PAIR_MAX_COMPL_END=3.00
-PRIMER_WT_SELF_END=0.0
-PRIMER_INTERNAL_WT_SELF_END=0.0
-PRIMER_PAIR_WT_COMPL_END=0.0
 PRIMER_MAX_END_STABILITY={max_3_prime_stability}
-PRIMER_WT_END_STABILITY=0.0
 PRIMER_MAX_NS_ACCEPTED={max_Ns}
 PRIMER_INTERNAL_MAX_NS_ACCEPTED={probe_max_Ns}
 PRIMER_MAX_POLY_X={max_poly_x}
 PRIMER_INTERNAL_MAX_POLY_X={probe_max_poly_x}
-PRIMER_MIN_THREE_PRIME_DISTANCE=-1
-PRIMER_PICK_ANYWAY=1
 PRIMER_LOWERCASE_MASKING={lowercase_masking}
-PRIMER_EXPLAIN_FLAG=1
 PRIMER_LIBERAL_BASE={liberal_base}
 PRIMER_FIRST_BASE_INDEX={primer_first_base_index}
 PRIMER_MAX_MISPRIMING={max_repeat_mispriming}
@@ -533,6 +499,51 @@ PRIMER_PAIR_MAX_TEMPLATE_MISPRIMING={pair_max_template_mispriming}
 PRIMER_WT_TEMPLATE_MISPRIMING=0.0
 PRIMER_PAIR_WT_TEMPLATE_MISPRIMING=0.0
 PRIMER_LIB_AMBIGUITY_CODES_CONSENSUS={ambiguity_codes_consensus}
+PRIMER_INSIDE_PENALTY={primer_inside_target_penalty}
+PRIMER_OUTSIDE_PENALTY={primer_outside_target_penalty}
+PRIMER_MIN_5_PRIME_OVERLAP_OF_JUNCTION=5
+PRIMER_PRODUCT_OPT_SIZE=0
+PRIMER_PAIR_WT_PRODUCT_SIZE_LT=0.0
+PRIMER_PAIR_WT_PRODUCT_SIZE_GT=0.0
+PRIMER_WT_SIZE_LT=1.0
+PRIMER_INTERNAL_WT_SIZE_LT=1.0
+PRIMER_WT_SIZE_GT=1.0
+PRIMER_INTERNAL_WT_SIZE_GT=1.0
+PRIMER_WT_GC_PERCENT_LT=0.0
+PRIMER_INTERNAL_WT_GC_PERCENT_LT=0.0
+PRIMER_WT_GC_PERCENT_GT=0.0
+PRIMER_INTERNAL_WT_GC_PERCENT_GT=0.0
+PRIMER_WT_TM_LT=1.0
+PRIMER_INTERNAL_WT_TM_LT=1.0
+PRIMER_WT_TM_GT=1.0
+PRIMER_INTERNAL_WT_TM_GT=1.0
+PRIMER_PAIR_WT_DIFF_TM=0.0
+PRIMER_PAIR_MAX_COMPL_ANY=8.00
+PRIMER_WT_SELF_ANY=0.0
+PRIMER_INTERNAL_WT_SELF_ANY=0.0
+PRIMER_PAIR_WT_COMPL_ANY=0.0
+PRIMER_PAIR_MAX_COMPL_END=3.00
+PRIMER_WT_SELF_END=0.0
+PRIMER_INTERNAL_WT_SELF_END=0.0
+PRIMER_PAIR_WT_COMPL_END=0.0
+PRIMER_PAIR_WT_PRODUCT_TM_LT=0.0
+PRIMER_PAIR_WT_PRODUCT_TM_GT=0.0
+PRIMER_TM_FORMULA=0
+PRIMER_SALT_MONOVALENT=51.0
+PRIMER_INTERNAL_SALT_MONOVALENT=50.0
+PRIMER_SALT_DIVALENT=0.0
+PRIMER_INTERNAL_SALT_DIVALENT=0.0
+PRIMER_WT_END_STABILITY=0.0
+PRIMER_MIN_THREE_PRIME_DISTANCE=-1
+PRIMER_PICK_ANYWAY=1
+PRIMER_EXPLAIN_FLAG=1
+PRIMER_WT_POS_PENALTY=0.0
+PRIMER_SEQUENCING_LEAD=50
+PRIMER_SEQUENCING_SPACING=500
+PRIMER_SEQUENCING_INTERVAL=250
+PRIMER_SEQUENCING_ACCURACY=20
+PRIMER_WT_END_QUAL=0.0
+PRIMER_INTERNAL_WT_END_QUAL=0.0
 PRIMER_MAX_LIBRARY_MISPRIMING=12.00
 PRIMER_INTERNAL_MAX_LIBRARY_MISHYB=12.00
 PRIMER_PAIR_MAX_LIBRARY_MISPRIMING=24.00
@@ -548,19 +559,11 @@ PRIMER_WT_SEQ_QUAL=0.0
 PRIMER_INTERNAL_WT_SEQ_QUAL=0.0
 PRIMER_PAIR_WT_PR_PENALTY=1.0
 PRIMER_PAIR_WT_IO_PENALTY=0.0
-PRIMER_INSIDE_PENALTY={primer_inside_target_penalty}
-PRIMER_OUTSIDE_PENALTY={primer_outside_target_penalty}
-PRIMER_WT_POS_PENALTY=0.0
-PRIMER_SEQUENCING_LEAD=50
-PRIMER_SEQUENCING_SPACING=500
-PRIMER_SEQUENCING_INTERVAL=250
-PRIMER_SEQUENCING_ACCURACY=20
-PRIMER_WT_END_QUAL=0.0
-PRIMER_INTERNAL_WT_END_QUAL=0.0
-SEQUENCE_TARGET={target}
-EXCLUDED_REGION={excluded_region}
 =
 """
+
+
+# set tabs for the Streamlit app
 tab1, tab2, tab3, tab4 = st.tabs([
     "🧬 Input Settings",
     "📄 Primer3 Raw Output",
@@ -569,12 +572,11 @@ tab1, tab2, tab3, tab4 = st.tabs([
     
 ])
 
-
 # === Tab 1: Input ===
 with tab1:
     st.title("Primer3 v0.4.0 - Streamlit GUI")
 
-    sequence = st.text_area("Paste DNA Sequence (5'→3')", height=200, key="sequence")
+    sequence = st.text_area("Paste DNA Sequence (5'→3')", height=300, key="sequence")
 
 
     seq_id = st.text_input("Sequence ID", help="Identifier for the sequence. This will be used in the Primer3 output.", key="seq_id")
@@ -611,19 +613,19 @@ with tab1:
         target_str = f"{amp_target[0]},{amp_target[1]}"
         st.session_state["target"] = target_str
     else:
-        st.text_input("Target Sequence (optional)", key="target", help="Specify manually or use brackets like TCAT[CAT]GAT.")
+        st.text_input("Target Sequence (optional)", key="target", help="Specify manually or use brackets like TCAT[CAT]GAT in the sequence above.")
 
     if excluded_target[0] is not None and excluded_target[1] is not None:
         st.info(f"Excluded region detected at position {excluded_target[0]} with length {excluded_target[1]}.")
         excluded_region_str = f"{excluded_target[0]},{excluded_target[1]}"
         st.session_state["excluded_region"] = excluded_region_str
     else:
-        st.text_input("Excluded Region (optional)", key="excluded_region", help="Specify manually or use angle brackets like TCA<CTG>GAT.")
+        st.text_input("Excluded Region (optional)", key="excluded_region", help="Specify manually or use angle brackets like TCA<CTG>GAT in the sequence above.")
 
     # product size ranges        
     st.text_input("Custom Product Size Range", key="product_size_range", help="Space-separated size ranges (e.g. 100-200 300-400)")
     
-    # basic settings
+    #### Basic settings ####
     col1, col2 = st.columns(2)
 
     if "num_return" in st.session_state and isinstance(st.session_state.num_return, str):
@@ -642,7 +644,7 @@ with tab1:
         st.number_input("Max Pair Template Mispriming", min_value=0.0, key="pair_max_template_mispriming", help="Default is 24.0")
         
 
-    #### -> General primer picking settings ####
+    #### General primer picking settings ####
     
     st.markdown("### General primer picking settings")
 
@@ -652,17 +654,30 @@ with tab1:
 
 
             primer_min_size = st.number_input(
-                "Minimum Primer Size",min_value=1,max_value=100,key="primer_min_size",help="Minimum size of the primer in bases. Default is 18."
+                "Minimum Primer Size",
+                min_value=1,
+                max_value=100,
+                key="primer_min_size",
+                help="Minimum size of the primer in bases. Default is 18."
             )
 
             primer_min_tm = st.number_input(
-                "Minimum Primer Tm",min_value=0.0,max_value=100.0,key="primer_min_tm",help="Minimum melting temperature (Tm) of the primer in degrees Celsius. Default is 57.0."
+                "Minimum Primer Tm",
+                min_value=0.0,
+                max_value=100.0,
+                key="primer_min_tm",
+                help="Minimum melting temperature (Tm) of the primer in degrees Celsius. Default is 57.0."
             )
 
             
             product_min_tm = st.number_input("Minimum Product Tm",key="product_min_tm")
             
-            primer_min_GC = st.number_input("Minimum Primer GC Content (%)",min_value=0.0,max_value=100.0,key="primer_min_GC",help="Minimum GC content of the primer in percentage. Default is 20.0.")
+            primer_min_GC = st.number_input(
+                "Minimum Primer GC Content (%)",
+                min_value=0.0
+                ,max_value=100.0,
+                key="primer_min_GC",
+                help="Minimum GC content of the primer in percentage. Default is 20.0.")
 
         with col2:
 
@@ -793,13 +808,13 @@ with tab1:
             }
             reverse_thermo = {v: k for k, v in thermo_param_map.items()}
 
-            # Get current value (e.g., "0") from session_state or default to "0"
+            # get current thermo map value (e.g., "0") from session_state or default to "0"
             thermo_value = st.session_state.get("thermo_param_value", "0")
 
-            # Map to label safely, fallback to default label if key doesn't exist
+            # map to label fallback to default label if key doesn't exist
             current_label = reverse_thermo.get(thermo_value, "Breslauer et al. 1986")
 
-            # Now build the selectbox using that label as default
+            # setup selectbox for different thermo param maps with default
             selected_thermo = st.selectbox(
                 "Thermodynamic Table Parameters",
                 options=list(thermo_param_map.keys()),
@@ -807,7 +822,7 @@ with tab1:
                 key="thermo_param_label"
             )
 
-            # Update actual numeric value in session_state for use in template
+            # update actual numeric value in session_state for use in template
             st.session_state["thermo_param_value"] = thermo_param_map[selected_thermo]
 
 
@@ -849,16 +864,16 @@ with tab1:
                 "Owczarzy et al. 2004": "2"
             }
 
-            # Reverse map: value to label
+            # setup reverse map: value (1) to label (Santa Lucia 1998)
             reverse_salt_map = {v: k for k, v in salt_correction_form_map.items()}
 
-            # Get numeric value ("0", "1", ...) from session_state, fallback to "0"
+            # get numeric value from session_state, fallback to "0"
             salt_val = st.session_state.get("salt_correction_value", "0")
 
-            # Get corresponding label
+            # get corresponding label
             current_label = reverse_salt_map.get(salt_val, "Schildkraut and Lifson 1965")
 
-            # Selectbox stores the label in a different key!
+            # set and store label in a selectbox
             selected_label = st.selectbox(
                 "Salt Correction Format",
                 options=list(salt_correction_form_map.keys()),
@@ -867,7 +882,7 @@ with tab1:
                 help="Select the salt correction format. Default is Schildkraut and Lifson."
             )
 
-            # Set numeric value separately
+            # set numeric value separately
             st.session_state["salt_correction_value"] = salt_correction_form_map[selected_label]
 
             primer_dntp_conc = st.number_input(
@@ -877,21 +892,20 @@ with tab1:
                 key= "primer_dntp_conc",
                 help="Concentration of dNTPs in millimolar (mM). Default is 0.0."
             )
+        col6, col7, col8 = st.columns(3)
+        with col6:
+            st.checkbox("Liberal Base", key="liberal_base_checkbox", help = "Allow Primer3 to accept IUB/IUPAC codes for bases by changing all unrecognized bases to 'N'. You will need to increase the 'Max Ns Accepted' setting to allow primers with Ns.")
+        with col7:
+            st.checkbox("Ambiguity Codes Consensus", key="ambiguity_codes_checkbox", help="Currently not implemented. Effects in practice: If left unchecked (default), ambiguity codes in mispriming/repeat libraries are treated as consensus, so R matches both A and G, making mispriming detection more permissive. If checked, ambiguity codes are treated literally, so R only matches R, reducing the number of flagged sites. When to use: Leave it unchecked if you want safer, broader mispriming detection (the usual case). Enable it only if your library uses ambiguity codes for annotation purposes or if the broad matching is excluding too many valid primers. ")
+        with col8:
+            st.checkbox("Lowercase Masking", key="lowercase_masking_checkbox", help="Enabling lowercase maksing allows primers to overlap lowercase regions in the sequence (usually repeats or other problematic sequences) except for the 3' end, preventing primers from starting or ending in these regions while still using nearby sequence.")
+        # set session state values based on checkboxes
+        st.session_state["liberal_base"] = 1 if st.session_state.get("liberal_base_checkbox", False) else 0
+        st.session_state["ambiguity_codes_consensus"] = 0 if st.session_state.get("ambiguity_codes_checkbox", False) else 1
+        st.session_state["lowercase_masking"] = 0 if st.session_state.get("lowercase_masking_checkbox", False) else 1
 
-            col6, col7, col8 = st.columns(3)
-            with col6:
-                st.checkbox("Liberal Base", key="liberal_base_checkbox")
-            with col7:
-                st.checkbox("Ambiguity Codes Consensus", key="ambiguity_codes_checkbox")
-            with col8:
-                st.checkbox("Lowercase Masking", key="lowercase_masking_checkbox")
-            #might need to move     
-            st.session_state["liberal_base"] = 1 if st.session_state.get("liberal_base_checkbox", False) else 0
-            st.session_state["ambiguity_codes_consensus"] = 0 if st.session_state.get("ambiguity_codes_checkbox", False) else 1
-            st.session_state["lowercase_masking"] = 0 if st.session_state.get("lowercase_masking_checkbox", False) else 1
 
-
-    #### -> General Hyb oligo picking settings ####
+    #### General hyb oligo picking settings ####
     
     st.markdown("### General internal oligo picking settings")
     with st.expander("General internal oligo picking settings"):
@@ -1011,7 +1025,6 @@ with tab1:
                 help="Minimum sequence quality of the probe. Default is 0."
             )
 
-            #maybe add the libraries?
         with col5:
             probe_max_3prime_self_comp = st.number_input(
                 "Max Probe 3' Self Complementarity",
@@ -1066,14 +1079,14 @@ with tab1:
         st.warning(f"Probe sequence is longer ({len(internal_seq)}) than the maximum set length ({max_internal})")
                 
     
-    # Add option to save input file ## maybe change to a button?
+    # add option to save input settings into file 
     save_input_file = st.checkbox("Save input settings file after run", value=defaults["save_input_file"], key="save_input_file")
     input_save_path = ""
     if st.session_state.get("save_input_file", False):
         default_path = defaults["input_save_path"]
         st.text_input(
             "Path to save input file",
-            value=default_path,
+            value="" ,
             key= "input_save_path",
             help="Full path for saving the input settings file (e.g. C:/Users/yourname/Downloads/primer3_input.txt). Defaults to working directory, and simply type a path to follow in the working directory. (e.g. foldername/primer3_input.txt)"
         )
@@ -1089,13 +1102,13 @@ with tab1:
             st.warning(f"Settings file path already exists: {resolved_path}. Please ensure you want to overwrite it.")
 
 
-    # Run button
+    # run button
     tab1_run = st.button("▶️ Run Primer3", key="tab1_run")
     st.session_state["run"] =  sidebar_clicked or tab1_run
     # if st.session_state["run"]:
     #     st.toast("Running Primer3 with the provided settings...", icon="🔄")
 
-    # Validation
+    # validation checks
     if st.session_state["run"] and not st.session_state["sequence"].strip():
         st.warning("Please enter a DNA sequence before running Primer3.")
     
@@ -1127,45 +1140,40 @@ with tab1:
         )
     ):
         st.warning("You must provide both primer sequences or select to pick the missing primer.")
+    
     # add additional warnings for optimum primer and probe settings
-    if (
-        st.session_state["primer_opt_size"] < st.session_state["primer_min_size"]
+    if (st.session_state["primer_opt_size"] < st.session_state["primer_min_size"]
         or st.session_state["primer_opt_size"] > st.session_state["primer_max_size"]
     ):
         st.warning(f"Optimal primer size ({st.session_state['primer_opt_size']}) should be between minimum ({st.session_state['primer_min_size']}) and maximum ({st.session_state['primer_max_size']}) size.")
 
-    if (
-        st.session_state["primer_opt_tm"] < st.session_state["primer_min_tm"]
+    if (st.session_state["primer_opt_tm"] < st.session_state["primer_min_tm"]
         or st.session_state["primer_opt_tm"] > st.session_state["primer_max_tm"]
     ):
         st.warning(f"Optimal primer Tm ({st.session_state['primer_opt_tm']}) should be between minimum ({st.session_state['primer_min_tm']}) and maximum ({st.session_state['primer_max_tm']}) Tm.")
 
-    if (
-        st.session_state["primer_opt_GC"] < st.session_state["primer_min_GC"]
+    if (st.session_state["primer_opt_GC"] < st.session_state["primer_min_GC"]
         or st.session_state["primer_opt_GC"] > st.session_state["primer_max_GC"]
     ):
         st.warning(f"Optimal primer GC% ({st.session_state['primer_opt_GC']}) should be between minimum ({st.session_state['primer_min_GC']}) and maximum ({st.session_state['primer_max_GC']}) GC%.")
 
-    # --- Additional warnings for probe settings ---
-    if (
-        st.session_state["probe_opt_size"] < st.session_state["probe_min_size"]
+    # additional warnings for probe settings 
+    if (st.session_state["probe_opt_size"] < st.session_state["probe_min_size"]
         or st.session_state["probe_opt_size"] > st.session_state["probe_max_size"]
     ):
         st.warning(f"Optimal probe size ({st.session_state['probe_opt_size']}) should be between minimum ({st.session_state['probe_min_size']}) and maximum ({st.session_state['probe_max_size']}) size.")
 
-    if (
-        st.session_state["probe_opt_tm"] < st.session_state["probe_min_tm"]
+    if (st.session_state["probe_opt_tm"] < st.session_state["probe_min_tm"]
         or st.session_state["probe_opt_tm"] > st.session_state["probe_max_tm"]
     ):
         st.warning(f"Optimal probe Tm ({st.session_state['probe_opt_tm']}) should be between minimum ({st.session_state['probe_min_tm']}) and maximum ({st.session_state['probe_max_tm']}) Tm.")
 
-    if (
-        st.session_state["probe_opt_GC"] < st.session_state["probe_min_GC"]
+    if (st.session_state["probe_opt_GC"] < st.session_state["probe_min_GC"]
         or st.session_state["probe_opt_GC"] > st.session_state["probe_max_GC"]
     ):
         st.warning(f"Optimal probe GC% ({st.session_state['probe_opt_GC']}) should be between minimum ({st.session_state['probe_min_GC']}) and maximum ({st.session_state['probe_max_GC']}) GC%.")
         
-    # Save input file if requested
+    # save input file if requested
     if st.session_state.get("run") and st.session_state.get("save_input_file") and st.session_state.get("input_save_path"):
         resolved_path, exists = resolve_and_check_path(st.session_state.get("input_save_path", ""))
         if not exists:
@@ -1176,15 +1184,10 @@ with tab1:
                 st.error(f"Could not create directory: {parent_dir}. Error: {e}")
         #else:
             #st.info(f"Path exists: {resolved_path}")
-            
-
-
-# === Tab 2: Output ===
-with tab2:
-    st.title("📄 Primer3 Raw Output")
 
     if st.session_state.get("run") and st.session_state.get("sequence"):
-        # Determine primer task
+
+        # determine primer task
         primer_task = determine_primer_task(
             st.session_state["pick_left"],
             st.session_state["pick_right"],
@@ -1194,11 +1197,11 @@ with tab2:
             st.session_state["internal"]
         )
 
-        # Remove SEQUENCE_INTERNAL_OLIGO if not needed
+        # clean sequence and filter template
         template_lines = PRIMER3_TEMPLATE.splitlines()
         filtered_lines = []
+        sequence_cleaned = st.session_state["sequence"].replace("\n", "").replace("[", "").replace("]", "")
         for line in template_lines:
-            sequence_cleaned = st.session_state["sequence"].replace("\n", "").replace("[", "").replace("]", "")
             if line.startswith("SEQUENCE_TEMPLATE="):
                 line = f"SEQUENCE_TEMPLATE={sequence_cleaned}"
             if line.startswith("SEQUENCE_PRIMER=") and st.session_state["pick_left"]:
@@ -1207,15 +1210,16 @@ with tab2:
                 continue
             if line.startswith("SEQUENCE_INTERNAL_OLIGO="):
                 # Only keep if the primer_task actually uses a probe
-                if st.session_state["pick_internal"] or primer_task not in ["pick_hyb_probe_only", "pick_pcr_primers_and_hyb_probe", "pick_pcr_primers_and_hyb_oligo"
+                if st.session_state["pick_internal"] or primer_task not in [
+                    "pick_hyb_probe_only",
+                    "pick_pcr_primers_and_hyb_probe",
+                    "pick_pcr_primers_and_hyb_oligo"
                 ]:
                     continue
             filtered_lines.append(line)
         template = "\n".join(filtered_lines)
 
-
-        #### -> Fill the template with session state values
-        ### General settings
+        # fill template with session state values
         settings_filled = template.format(
             seq_id=st.session_state["seq_id"],
             sequence=sequence_cleaned,
@@ -1233,7 +1237,7 @@ with tab2:
             pair_max_repeat_mispriming=st.session_state["pair_max_repeat_mispriming"],
             primer_task=primer_task,
 
-        ### General primer picking settings
+            ### general primer picking settings
             primer_min_size=st.session_state["primer_min_size"],
             primer_min_tm=st.session_state["primer_min_tm"],
             product_min_tm=st.session_state["product_min_tm"],
@@ -1263,8 +1267,7 @@ with tab2:
             primer_dntp_conc=st.session_state["primer_dntp_conc"],  
             liberal_base=st.session_state["liberal_base"],
 
-
-        ### General Probe picking settings
+            ### general probe picking settings
             probe_min_size=st.session_state["probe_min_size"],
             probe_min_tm=st.session_state["probe_min_tm"],
             probe_min_GC=st.session_state["probe_min_GC"],
@@ -1284,20 +1287,16 @@ with tab2:
             probe_DNA_conc=st.session_state["probe_DNA_conc"],
             probe_dntp_conc=st.session_state["probe_dntp_conc"],
             ambiguity_codes_consensus=st.session_state["ambiguity_codes_consensus"],
-            lowercase_masking = st.session_state["lowercase_masking"],
-
+            lowercase_masking=st.session_state["lowercase_masking"],
         )
 
-        
-
-        # Run Primer3 with temporary settings file
+        # run Primer3 with temporary settings file
         with tempfile.TemporaryDirectory() as tmpdir:
             input_path = os.path.join(tmpdir, "input.txt")
-            
             with open(input_path, "w") as f:
                 f.write(settings_filled)
 
-            # Save input file to user path if requested
+            # save input file to user path if requested
             if st.session_state.get("save_input_file") and st.session_state.get("input_save_path"):
                 try:
                     with open(st.session_state["input_save_path"], "w") as f:
@@ -1306,8 +1305,7 @@ with tab2:
                 except Exception as e:
                     st.error(f"Failed to save input file: {e}")
 
-
-
+            # run Primer3 and store results in session_state
             try:
                 result = subprocess.run(
                     ["primer3_core", input_path],
@@ -1315,55 +1313,59 @@ with tab2:
                     text=True,
                     check=True
                 )
-                st.success("Primer3 executed successfully.")
-                st.text_area("Primer3 Output", result.stdout, height=300)
                 st.session_state["raw_output"] = result.stdout
-
+                st.session_state["primer3_success"] = True
             except subprocess.CalledProcessError as e:
-                st.error("Primer3 execution failed.")
-                st.code(e.stderr)
-    else:
-        st.info("Go to the Input tab, enter your sequence and press 'Run Primer3'.")
-
+                st.session_state["raw_output"] = e.stderr
+                st.session_state["primer3_success"] = False
+            
 output = st.session_state.get("raw_output", "")
 
-# set tab for error information
+# === Tab 2: Raw output ===
+with tab2:
+    st.title("📄 Primer3 Raw Output")
+
+    if "raw_output" in st.session_state:
+        if st.session_state.get("primer3_success"):
+            st.success("Primer3 executed successfully.")
+        else:
+            st.error("Primer3 execution failed.")
+        st.text_area("Primer3 Output", st.session_state["raw_output"], height=400)
+    else:
+        st.info("Go to the Input tab, enter your sequence and press 'Run Primer3'.")
+        
+
+# === Tab 3: Errors and warnings ===
 with tab3:
     st.title("⚠️ Primer3 Warnings")
 
-    if (
-        st.session_state["primer_opt_size"] < st.session_state["primer_min_size"]
+    if (st.session_state["primer_opt_size"] < st.session_state["primer_min_size"]
         or st.session_state["primer_opt_size"] > st.session_state["primer_max_size"]
     ):
         st.warning(f"Optimal primer size ({st.session_state['primer_opt_size']}) should be between minimum ({st.session_state['primer_min_size']}) and maximum ({st.session_state['primer_max_size']}) size.")
 
-    if (
-        st.session_state["primer_opt_tm"] < st.session_state["primer_min_tm"]
+    if (st.session_state["primer_opt_tm"] < st.session_state["primer_min_tm"]
         or st.session_state["primer_opt_tm"] > st.session_state["primer_max_tm"]
     ):
         st.warning(f"Optimal primer Tm ({st.session_state['primer_opt_tm']}) should be between minimum ({st.session_state['primer_min_tm']}) and maximum ({st.session_state['primer_max_tm']}) Tm.")
 
-    if (
-        st.session_state["primer_opt_GC"] < st.session_state["primer_min_GC"]
+    if (st.session_state["primer_opt_GC"] < st.session_state["primer_min_GC"]
         or st.session_state["primer_opt_GC"] > st.session_state["primer_max_GC"]
     ):
         st.warning(f"Optimal primer GC% ({st.session_state['primer_opt_GC']}) should be between minimum ({st.session_state['primer_min_GC']}) and maximum ({st.session_state['primer_max_GC']}) GC%.")
 
-    # --- Additional warnings for probe settings ---
-    if (
-        st.session_state["probe_opt_size"] < st.session_state["probe_min_size"]
+    # warnings for probe settings
+    if (st.session_state["probe_opt_size"] < st.session_state["probe_min_size"]
         or st.session_state["probe_opt_size"] > st.session_state["probe_max_size"]
     ):
         st.warning(f"Optimal probe size ({st.session_state['probe_opt_size']}) should be between minimum ({st.session_state['probe_min_size']}) and maximum ({st.session_state['probe_max_size']}) size.")
 
-    if (
-        st.session_state["probe_opt_tm"] < st.session_state["probe_min_tm"]
+    if (st.session_state["probe_opt_tm"] < st.session_state["probe_min_tm"]
         or st.session_state["probe_opt_tm"] > st.session_state["probe_max_tm"]
     ):
         st.warning(f"Optimal probe Tm ({st.session_state['probe_opt_tm']}) should be between minimum ({st.session_state['probe_min_tm']}) and maximum ({st.session_state['probe_max_tm']}) Tm.")
 
-    if (
-        st.session_state["probe_opt_GC"] < st.session_state["probe_min_GC"]
+    if (st.session_state["probe_opt_GC"] < st.session_state["probe_min_GC"]
         or st.session_state["probe_opt_GC"] > st.session_state["probe_max_GC"]
     ):
         st.warning(f"Optimal probe GC% ({st.session_state['probe_opt_GC']}) should be between minimum ({st.session_state['probe_min_GC']}) and maximum ({st.session_state['probe_max_GC']}) GC%.")
@@ -1371,17 +1373,16 @@ with tab3:
     # set logic for different warning checks
     no_left = not st.session_state.get("pick_left", False) and not st.session_state.get("left", "").strip()
     no_right = not st.session_state.get("pick_right", False) and not st.session_state.get("right", "").strip()
-    if no_left or no_right:
+    if st.warning is not None and not output:
+        st.info("Run Primer3 to generate output.") 
+    elif no_left or no_right:
         st.error("One or both primer sequences are missing and the corresponding 'Pick' option is not selected. Please provide primer sequences or select the 'Pick' option in the 'Input Settings' tab.")
-        st.info("Primer3 Output is unavailable until you provide primer information.")
-    elif st.warning is not None and not output:
-        st.info("Run Primer3 to generate output.")
     elif "PRIMER_ERROR" in output:
         error_line = [line for line in output.splitlines() if line.startswith("PRIMER_ERROR=")]
         if error_line:
             st.error("No results generated with the provided design:  \n" +   "\n".join(err.replace("PRIMER_ERROR=", "Primer3 Error: ") for err in error_line))
-    # maybe make this one conditional as well, like if no errors or problems
-    else:
+
+    elif output and not "PRIMER_ERROR" in output:
         st.info("Primer3 has succesfully executed. Check below for potential warnings about the primer / probe design parameters")
         # Extract PRIMER_WARNING lines
         warning_lines = [line for line in output.splitlines() if line.startswith("PRIMER_WARNING=")]
@@ -1410,6 +1411,7 @@ with tab3:
         st.write("")
         st.write("")
         st.subheader("Result specific problems:")
+        
         # check for product size
         range_line = next((line for line in output.splitlines() if line.startswith("PRIMER_PRODUCT_SIZE_RANGE=")), None)
         if range_line:
@@ -1422,13 +1424,14 @@ with tab3:
                 except Exception:
                     continue
 
-            # For each result, check product size
+            # for each result, check product size
             for line in output.splitlines():
                 if line.startswith("PRIMER_PAIR_") and "_PRODUCT_SIZE=" in line:
                     parts = line.split("_")
                     idx = int(parts[2])
                     size = int(line.split("=")[1].strip())
-                    # Check if size is in any allowed range
+
+                    # check if size is in any allowed range
                     in_range = any(start <= size <= end for start, end in allowed_ranges)
                     if not in_range:
                         st.write(f"**Result {idx + 1}:**")
@@ -1443,7 +1446,7 @@ with tab3:
                 # get the result number
                 parts = prefix.split("_")
                 if len(parts) >= 3:
-                    oligo_type = parts[1].upper()  # LEFT, RIGHT, INTERNAL
+                    oligo_type = parts[1].upper()  
                     if oligo_type == "LEFT":
                         oligo_label = "Left Primer"
                     elif oligo_type == "RIGHT":
@@ -1464,12 +1467,14 @@ with tab3:
                 st.write(f"**Result {result_num + 1}:**")
                 for problem in problems_list:
                     st.write(problem)
+    else:
+        st.info("No output available. See Primer3 warnings tab and console for errors or warnings.")
 
-
+# === Tab 4: output section ===
 with tab4:
     st.title("📊 Primer3 Output")
     
-    # Error: No primer sequences provided and pick is not selected
+    # setup errors: No primer sequences provided and pick is not selected
     no_left = not st.session_state.get("pick_left", False) and not st.session_state.get("left", "").strip()
     no_right = not st.session_state.get("pick_right", False) and not st.session_state.get("right", "").strip()
     if no_left or no_right:
@@ -1487,24 +1492,24 @@ with tab4:
             if line.startswith("SEQUENCE_TARGET="):
                 lines = lines[i:] 
                 break
-        # # save lines to txt file
-        # with open ("primer3_temp_output.txt", "w") as file:
-        #     file.write("\n".join(lines))
-        # Find out how many results there are
+
+        # count how many results there are
         num_results = 0
         for line in lines:
             if line.startswith("PRIMER_PAIR_") and "_PENALTY=" in line:
-                idx = int(line.split("_")[2])
-                num_results = max(num_results, idx + 1)
+                parts = line.split("_")
+                if parts[2].isdigit():
+                    idx = int(line.split("_")[2])
+                    num_results = max(num_results, idx + 1)
 
         # setup result for later export
         all_results_for_export = []        
 
-        # For each result, extract the relevant info
+        # for each result, extract the relevant info
         for idx in range(num_results):
             st.subheader(f"Result {idx+1}")
             row_data = []
-            #only include HYB OLIGO if probe is picked or provided
+            # only include HYB OLIGO if probe is picked or provided
             primer_rows = [
                 ("LEFT PRIMER", "PRIMER_LEFT"),
                 ("RIGHT PRIMER", "PRIMER_RIGHT"),
@@ -1552,7 +1557,6 @@ with tab4:
 
             # product info
             product_data = []
-
             product_size = None
             self_comp = None
             prime_end = None
@@ -1580,7 +1584,7 @@ with tab4:
             st.dataframe(pd.DataFrame(product_data), use_container_width=True, hide_index=True)
 
 
-            # Get binding info from output
+            # get binding info from output
             left_start, left_len = None, None
             right_start, right_len = None, None
             hyb_start, hyb_len = None, None
@@ -1612,14 +1616,14 @@ with tab4:
             seq = st.session_state.get("sequence", "").replace("\n", "").replace("[", "").replace("]", "")
             seq_len = len(seq)
 
-            # Prepare marker lines
+            # prepare marker lines
             marker = [" "]*seq_len
             if left_start is not None and left_len is not None:
                 for i in range(left_start, left_start + left_len):
                     if 0 <= i < seq_len:
                         marker[i] = ">"
             if right_start is not None and right_len is not None:
-                # Right primer: position is last base, so mark backwards
+                # right primer: position is last base, so mark backwards
                 for i in range(right_start - right_len + 1, right_start + 1):
                     if 0 <= i < seq_len:
                         marker[i] = "<"
@@ -1664,9 +1668,9 @@ with tab4:
                         block += f"{row_start:>6}  {seq_row}\n       {marker_row}\n\n"
                 block_lines = block.splitlines()
                 if block_lines:
-                    # Use zero-width space (U+200B) to pad the first line
-                    invisible_pad = "\u200B" * 18  # Adjust the number for desired width
-                    block_lines[0] = invisible_pad + block_lines[0][2:]  # Remove filler and pad
+                    # use zero-width space (U+200B) to pad the first line
+                    invisible_pad = "\u200B" * 18  
+                    block_lines[0] = invisible_pad + block_lines[0][2:]  
                 block = "\n".join(block_lines)
                 st.code(block, language="text")
                 
@@ -1681,7 +1685,7 @@ with tab4:
                 )
                 st.markdown(legend)
 
-            # Add results into variable for later saving
+            # add results into variable for later saving
             all_results_for_export.append({
                 "primer_table": pd.DataFrame(row_data),
                 "product_table": pd.DataFrame(product_data),     
@@ -1711,7 +1715,7 @@ with tab4:
                     k, v = item.rsplit(" ", 1)
                     explain_data["INTERNAL"][k] = int(v)
 
-        # 🧾 Build table
+        # build table
         ordered_keys = [
             "considered",
             "too many Ns",
@@ -1735,12 +1739,12 @@ with tab4:
             ("RIGHT", "pick_right", "right"),
         ]
 
-        # Only add INTERNAL if probe is picked or provided
+        # only add INTERNAL if probe is picked or provided
         if st.session_state.get("pick_internal") or st.session_state.get("internal", "").strip():
             columns_to_include.append(("INTERNAL", "pick_internal", "internal"))
 
         for col, pick_key, seq_key in columns_to_include:
-            # If not picked but sequence is provided, fill with text string like "provided"
+            # if not picked but sequence is provided, fill with text string "provided"
             if not st.session_state.get(pick_key) and st.session_state.get(seq_key, "").strip():
                 df_explain[col] = ["provided"] * len(ordered_keys)
             else:
@@ -1748,7 +1752,7 @@ with tab4:
 
         explanation_summary_df = df_explain
 
-        # 📊 Show table
+        # show table
         st.subheader("Oligo Explanation Summary")
         st.table(explanation_summary_df)
 
@@ -1789,5 +1793,4 @@ with tab4:
                     )
                 else:
                     st.error("Failed to generate PDF.")
-
 
