@@ -1,16 +1,13 @@
 # primer3GUI
 primer3GUI, or P3G for short, is a lightweight interface built using [Streamlit](https://streamlit.io/) that wraps around [Primer3](https://github.com/primer3-org/primer3)(V0.4.0), installable via Conda. This wrapper offers an alternative to the publicly available Primer3 web application with a couple of additional features to the original web application.
 
-P3G was originally designed for cases where the web application would be unavailable or for design without an internet connection. P3G produces identical primer sequences for given inputs and parameters.
+P3G was originally designed for cases where the web application for Primer3 vV0.4.0 would be unavailable or for design without an internet connection. P3G produces identical primer sequences for given inputs and parameters.
 
 You may notice **minor differences in the total number of designs returned** compared to other Primer3 interfaces (e.g., the official web-based tools), despite using the same input parameters. This is due to P3G using a newer release of the primer3core (V 2.6.1), as the web version is using V 1.1.4. 
 
+⚠️ **Note:** This project is not affiliated with or endorsed by the Primer3 development team and is purely a personal project.
 
-
-
-
-⚠️ **Note:** This project is not affiliated with or endorsed by the Primer3 development team.
-
+<br>
 
 ## Features
 This application offers similar functions and parameters for primer and probe design to the standard web application, with a couple of additional features. It offers:
@@ -21,12 +18,15 @@ This application offers similar functions and parameters for primer and probe de
 
 Currently, a couple of different versions of the application exist. For the differences between them, see [here](P3G/README.md). 
 
+<br>
 
 ## Licenses
 This project is licensed under the MIT license. See the [LICENSE](LICENSE) for full terms.
 
 Primer3 is included in this project and is licensed separately under the GNU General Public License v2.0.
 See the Primer3 project [here](https://github.com/primer3-org/primer3) for full source code and license.
+
+<br>
 
 ## Installation and Usage
 
@@ -57,12 +57,16 @@ streamlit run P3G_V1.0.py
 
 6. Open the application in your preferred browser using one of the URLs that appear in the console. FOr security reasons, the Local URL is safer. 
 
+<br>
+
 ## Disclaimer
 This is an independent tool wrapper of the Primer3 core engine.
 It is not developed, maintained, or endorsed by the official Primer3 development team.
 All trademarks and copyrights belong to their respective holders. 
 
 This application is currently only tested locally, not on a server based setting, and thus its functionality in a server-based or production environment cannot be guaranteed.
+
+<br>
 
 ## Citation 
 If you use P3G in your research or projects, please cite this repository as follows:
@@ -74,6 +78,8 @@ Please also cite the original primer3 papers and/or repository:
 - Untergasser A, Cutcutache I, Koressaar T, et al. Primer3—new capabilities and interfaces. Nucleic acids research 2012. DOI: 10.1093/nar/gks596.
 - Koressaar T and Remm M. Enhancements and modifications of primer design program Primer3. Bioinformatics 2007. DOI: 10.1093/bioinformatics/btm091.
 - https://github.com/primer3-org/primer3
+
+<br>
 
 ## Roadmap / TO DO
 
