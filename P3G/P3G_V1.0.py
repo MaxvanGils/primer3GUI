@@ -1388,30 +1388,38 @@ with tab3:
         warning_lines = [line for line in output.splitlines() if line.startswith("PRIMER_WARNING=")]
         # Only display if sequence is provided (not picked)
         st.subheader("Problems with primer / probe design parameters with the found / picked oligos:")
+        found_warning = False
         if st.session_state.get("left", "").strip():
             left_warnings = [w for w in warning_lines if "left primer" in w]
             if left_warnings:
+                found_warning = True
                 st.write("**Left Primer Warnings:**")
                 for w in left_warnings:
                     st.write(w.replace("PRIMER_WARNING=", ""))
         if st.session_state.get("right", "").strip():
             right_warnings = [w for w in warning_lines if "right primer" in w]
             if right_warnings:
+                found_warning = True
                 st.write("**Right Primer Warnings:**")
                 for w in right_warnings:
                     st.write(w.replace("PRIMER_WARNING=", ""))
         if st.session_state.get("internal", "").strip():
             internal_warnings = [w for w in warning_lines if "internal oligo" in w or "internal oligo" in w]
             if internal_warnings:
+                found_warning = True
                 st.write("**Internal Oligo Warnings:**")
                 for w in internal_warnings:
-                    st.write(w.replace("PRIMER_WARNING=", ""))    
+                    st.write(w.replace("PRIMER_WARNING=", ""))  
+        if not found_warning:
+            st.write("No errors or warnings found with the provided primer / probe sequences.")  
         
         st.write("")
         st.write("")
         st.write("")
         st.subheader("Result specific problems:")
-        
+
+        found_issue = False
+
         # check for product size
         range_line = next((line for line in output.splitlines() if line.startswith("PRIMER_PRODUCT_SIZE_RANGE=")), None)
         if range_line:
@@ -1434,6 +1442,7 @@ with tab3:
                     # check if size is in any allowed range
                     in_range = any(start <= size <= end for start, end in allowed_ranges)
                     if not in_range:
+                        found_issue = True
                         st.write(f"**Result {idx + 1}:**")
                         st.write(f"Product size {size} is outside the allowed range(s): {range_str}")
             
@@ -1458,6 +1467,7 @@ with tab3:
                     result_num = int(parts[2])
                     problems = problems.strip()
                     if problems:
+                        found_issue = True
                         if result_num not in result_problems:
                             result_problems[result_num] = []
                         result_problems[result_num].append(f"Problem {oligo_label}: {problems}")
@@ -1467,6 +1477,8 @@ with tab3:
                 st.write(f"**Result {result_num + 1}:**")
                 for problem in problems_list:
                     st.write(problem)
+        if not found_issue:
+            st.write("No issues were found in the generated results.")
     else:
         st.info("No output available. See Primer3 warnings tab and console for errors or warnings.")
 
