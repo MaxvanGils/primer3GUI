@@ -108,6 +108,16 @@ def format_sequence_block(rows):
 
 # setup the downloadable HTML report
 def generate_full_html_report(results, explanation_summary_df=None, pair_explain_text="", seq_id=""):
+    legend_html = """
+    <div style="margin-top:10px; margin-bottom:20px;">
+        <b>Legend:</b><br>
+        Forward Primer: <code>&gt;</code><br>
+        Reverse Primer: <code>&lt;</code><br>
+        Probe/Internal Oligo: <code>^</code><br>
+        Target Region: <code>*</code><br>
+        Excluded Region: <code>X</code>
+    </div>
+    """
     html = f"""
     <html><head>
     <style>
@@ -126,6 +136,7 @@ def generate_full_html_report(results, explanation_summary_df=None, pair_explain
         html += dataframe_to_html_table(res['product_table'])
         html += "<h3>Binding Sites</h3>"
         html += format_sequence_block(res['sequence_block'])
+        html += legend_html
         html += "<br><hr>"
 
     #  add explanation summary from primer3 at the bottom
@@ -150,6 +161,15 @@ def generate_pdf_reportlab(results, explanation_summary_df=None, pair_explain_te
     elements = []
     styles = getSampleStyleSheet()
     mono = ParagraphStyle(name='Mono', fontName='Courier', fontSize=8, leading=9)
+
+    legend_text = (
+        "<b>Legend:</b><br/>"
+        "Forward Primer: <font face='Courier'>&gt;</font><br/>"
+        "Reverse Primer: <font face='Courier'>&lt;</font><br/>"
+        "Probe/Internal Oligo: <font face='Courier'>^</font><br/>"
+        "Target Region: <font face='Courier'>*</font><br/>"
+        "Excluded Region: <font face='Courier'>X</font>"
+    )
 
     elements.append(Paragraph(f"Primer3 Results - {seq_id}", styles["Heading1"]))
 
@@ -186,10 +206,12 @@ def generate_pdf_reportlab(results, explanation_summary_df=None, pair_explain_te
         for seq, marker in res['sequence_block']:
             seq_lines.append(f"{seq}\n{marker}\n")
         elements.append(Preformatted("".join(seq_lines), mono))
+        elements.append(Paragraph(legend_text, styles["Normal"]))
         elements.append(Spacer(1, 12))
         ## add a page break after each result except the last one
         if idx < len(results) - 1:
             elements.append(PageBreak())
+            
 
     ## explanation Summary Table
     elements.append(PageBreak())
@@ -634,7 +656,7 @@ with tab1:
         except ValueError:
             st.session_state.num_return = 5  # fallback to a safe default 
     with col1:
-        st.number_input("Number of Primers to Return", min_value=1, key="num_return", help="Default is 5.")
+        st.number_input("Number of Primer Pairs to Return", min_value=1, key="num_return", help="Number of pairs to return. Default is 5")
         st.number_input("Max Repeat Mispriming", min_value=0.0, key="max_repeat_mispriming", help="Default is 12.0")
         st.number_input("Max Template Mispriming", min_value=0.0, key="max_template_mispriming", help="Default is 12.0")
 
@@ -646,9 +668,9 @@ with tab1:
 
     #### General primer picking settings ####
     
-    st.markdown("### General primer picking settings")
+    st.markdown("### General primer picking conditions")
 
-    with st.expander("General primer picking settings"):
+    with st.expander("General primer picking conditions"):
         col1, col2 , col3 = st.columns(3)
         with col1:
 
@@ -793,13 +815,34 @@ with tab1:
                 help="Salt concentration of divalent cations in millimolar (mM). Default is 0.0."
             )
 
-            annealing_oligo_conc = st.number_input(
-                "Annealing Oligo Concentration (nM)",
-                min_value=0.0,
-                max_value=1000.0,
-                key = "annealing_oligo_conc",
-                help="Concentration of the annealing oligo in nanomolar (nM). Default is 50.0."
+            
+            salt_correction_form_map = {
+                "Schildkraut and Lifson 1965": "0",
+                "Santa Lucia 1998": "1",
+                "Owczarzy et al. 2004": "2"
+            }
+
+            # setup reverse map: value (1) to label (Santa Lucia 1998)
+            reverse_salt_map = {v: k for k, v in salt_correction_form_map.items()}
+
+            # get numeric value from session_state, fallback to "0"
+            salt_val = st.session_state.get("salt_correction_value", "0")
+
+            # get corresponding label
+            current_label = reverse_salt_map.get(salt_val, "Schildkraut and Lifson 1965")
+
+            # set and store label in a selectbox
+            selected_label = st.selectbox(
+                "Salt Correction Format",
+                options=list(salt_correction_form_map.keys()),
+                index=list(salt_correction_form_map.keys()).index(current_label),
+                key="salt_correction_label",  # <- changed key here!
+                help="Select the salt correction format. Default is Schildkraut and Lifson."
             )
+
+            # set numeric value separately
+            st.session_state["salt_correction_value"] = salt_correction_form_map[selected_label]
+
 
         with col5:
             thermo_param_map = {
@@ -858,32 +901,13 @@ with tab1:
                 help="Require the specified number of consecutive Gs and Cs at the 3' end of both the left and right primer"
             )
 
-            salt_correction_form_map = {
-                "Schildkraut and Lifson 1965": "0",
-                "Santa Lucia 1998": "1",
-                "Owczarzy et al. 2004": "2"
-            }
-
-            # setup reverse map: value (1) to label (Santa Lucia 1998)
-            reverse_salt_map = {v: k for k, v in salt_correction_form_map.items()}
-
-            # get numeric value from session_state, fallback to "0"
-            salt_val = st.session_state.get("salt_correction_value", "0")
-
-            # get corresponding label
-            current_label = reverse_salt_map.get(salt_val, "Schildkraut and Lifson 1965")
-
-            # set and store label in a selectbox
-            selected_label = st.selectbox(
-                "Salt Correction Format",
-                options=list(salt_correction_form_map.keys()),
-                index=list(salt_correction_form_map.keys()).index(current_label),
-                key="salt_correction_label",  # <- changed key here!
-                help="Select the salt correction format. Default is Schildkraut and Lifson."
+            annealing_oligo_conc = st.number_input(
+                "Annealing Oligo Concentration (nM)",
+                min_value=0.0,
+                max_value=1000.0,
+                key = "annealing_oligo_conc",
+                help="Concentration of the annealing oligo in nanomolar (nM). Default is 50.0."
             )
-
-            # set numeric value separately
-            st.session_state["salt_correction_value"] = salt_correction_form_map[selected_label]
 
             primer_dntp_conc = st.number_input(
                 "Primer dNTP Concentration (mM)",
@@ -892,6 +916,7 @@ with tab1:
                 key= "primer_dntp_conc",
                 help="Concentration of dNTPs in millimolar (mM). Default is 0.0."
             )
+
         col6, col7, col8 = st.columns(3)
         with col6:
             st.checkbox("Liberal Base", key="liberal_base_checkbox", help = "Allow Primer3 to accept IUB/IUPAC codes for bases by changing all unrecognized bases to 'N'. You will need to increase the 'Max Ns Accepted' setting to allow primers with Ns.")
@@ -907,8 +932,8 @@ with tab1:
 
     #### General hyb oligo picking settings ####
     
-    st.markdown("### General internal oligo picking settings")
-    with st.expander("General internal oligo picking settings"):
+    st.markdown("### General internal oligo picking conditions")
+    with st.expander("General internal oligo picking conditions"):
         col1, col2 , col3 = st.columns(3)
         with col1:
             probe_min_size = st.number_input(
