@@ -55,9 +55,11 @@ conda install primer3=2.6.1
 streamlit run P3G_V1.0.py
 ```
 
-6. Open the application in your preferred browser using one of the URLs that appear in the console. For security reasons, the Local URL is safer.   
+6. Open the application in your preferred browser using one of the URLs that appear in the console. For security reasons, the Local URL is safer.
 
-If no GUI appears or an error pops up, a reload of the page can fix this problem. 
+If no GUI appears or an error pops up, a reload of the page can fix this problem.
+
+For an overview of how each of the currently implemented settings affect primer picking, see the [Settings explanation](P3G/Settings_explained.md).
 
 <br>
 
@@ -91,4 +93,4 @@ Please also cite the original primer3 papers and/or repository:
 - add the legend to the exported result files
 - add the standard libraries and allow user to add custom library sequences for detecting unexpected cross reactivity
 - add penalty weight settings for determining the "optimal/best" primers. This would allow the user to change them from the default settings to custom settings
-- rerender the warning and output tabs only when run is clicked again, so the result does not disappear after making changes
+- rerender the warning and output tabs only when run is clicked again, so the result does not disappear after making changes (changes made, testing needed)
