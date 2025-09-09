@@ -23,8 +23,8 @@ Currently, a couple of different versions of the application exist. For the diff
 ## Licenses
 This project is licensed under the MIT license. See the [LICENSE](LICENSE) for full terms.
 
-Primer3 is included in this project and is licensed separately under the GNU General Public License v2.0.
-See the Primer3 project [here](https://github.com/primer3-org/primer3) for full source code and license.
+Primer3 source code is not included in this project, and is licensed separately under the GNU General Public License v2.0.
+See Primer3 [here](https://github.com/primer3-org/primer3) for full source code and license.
 
 <br>
 
