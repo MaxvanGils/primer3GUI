@@ -64,9 +64,8 @@ For an overview of how each of the currently implemented settings affect primer 
 <br>
 
 ## Disclaimer
-This is an independent tool wrapper of the Primer3 core engine.
-It is not developed, maintained, or endorsed by the official Primer3 development team.
-All trademarks and copyrights belong to their respective holders. 
+
+This project is a personal endeavor and is not affiliated with or endorsed by the Primer3 development team.
 
 This application is currently only tested locally, not on a server based setting, and thus its functionality in a server-based or production environment cannot be guaranteed.
 
