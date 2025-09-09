@@ -32,7 +32,7 @@ See Primer3 [here](https://github.com/primer3-org/primer3) for full source code 
 
 1. Dowload this repository either as a ZIP and unpack, or via commandline:
 ```bash
-git clone https://github.com/mgils4/primer3GUI.git
+git clone https://github.com/MaxvanGils/primer3GUI.git
 ```
 2. Navigate to the relevant directory:
 ```bash
@@ -76,7 +76,7 @@ This application is currently only tested locally, not on a server based setting
 If you use P3G in your research or projects, please cite this repository as follows:
 
 Max van Gils, primer3GUI: A Streamlit GUI wrapper for Primer3, GitHub repository
-https://github.com/mgils4/primer3GUI, [2025]
+https://github.com/MaxvanGils/primer3GUI, [2025]
 
 Please also cite the original primer3 papers and/or repository:  
 - Untergasser A, Cutcutache I, Koressaar T, et al. Primer3—new capabilities and interfaces. Nucleic acids research 2012. DOI: 10.1093/nar/gks596.
